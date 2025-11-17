@@ -141,6 +141,10 @@ def menuMain():
         print("3. Buscar bordes")
         print("4. Salir del programa")
         opcionEditarImg = input("Ingrese una opcion: ")
+        if not os.path.isfile(rutaImagenes+nombreImagen):
+            print("La imagen se movio de directorio o ya no existe")
+            break
+
         match opcionEditarImg:
             case "1":
                 ajustarHistograma(nombreImagen)
