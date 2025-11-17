@@ -11,6 +11,15 @@ def mostrarImgMPL(img,figsize=(10,10)):
     ax.set_frame_on(False)
     ax.imshow(img)
 
+def establecerRutaImagenes(ruta:str)->bool:
+    global rutaImagenes
+    if os.path.isdir(ruta):
+        rutaImagenes = ruta
+        #la ruta siempre debe terminar con / para que podamos concatenarla con el nombre de la imagen
+        if not rutaImagenes[-1] == "/":
+            rutaImagenes+="/"
+        return True
+    return False
 
 #1
 dimensionesReferencia = {
@@ -31,9 +40,19 @@ def redimensionarImg(nombreImg:str,formato:str):
 
 #2
 def ajustarHistograma(nombreImg:str):
-    img = opencv.imread(rutaImagenes+nombreImg,opencv.IMREAD_GRAYSCALE)
-    img = opencv.equalizeHist(img)
-    return Image.fromarray(img)
+    imgOriginal = opencv.imread(rutaImagenes+nombreImg,opencv.IMREAD_GRAYSCALE)
+    img = opencv.equalizeHist(imgOriginal)
+    #convirtiendolas a imagenes de pillow
+    imgOriginal = Image.fromarray(imgOriginal)
+    img = Image.fromarray(img)
+    imgCombinada = Image.new("RGB",(img.size[0]*2,img.size[1]),(1,1,1))
+    imgCombinada.paste(imgOriginal,(0,0))
+    imgCombinada.paste(img,(img.size[0],0))
+
+    mpl.rcParams['image.cmap'] = 'gray'
+    mostrarImgMPL(imgCombinada)
+    imgCombinada.save(rutaImagenes + "Hist_" + nombreImg)
+    #return imgCombinada
 
 
 #3
@@ -70,22 +89,29 @@ def aplicarFiltroImagen(nombreImg:str,filtroElegido:str):
             fila += 1
         else:
             columna += 1
-    return imgCombinada
+
+    mpl.rcParams['image.cmap'] = 'viridis'
+    mostrarImgMPL(imgCombinada)
+    imgCombinada.save(rutaImagenes + "Filtrada_" + nombreImg)
+    #return imgCombinada
 
 #4
 def buscarBoceto(nombreImg:str):
     img = opencv.imread(rutaImagenes+nombreImg,opencv.IMREAD_GRAYSCALE)
-    img = opencv.Canny(img,100,150)
-    return Image.fromarray(img)
+    img = opencv.Canny(img,110,150)
+    img = Image.fromarray(img)
+
+    mpl.rcParams['image.cmap'] = 'gray'
+    mostrarImgMPL(img)
+    img.save(rutaImagenes + "Boceto_" + nombreImg)
+    #return img
 
 
 #5
 def menuMain():
     print("Bienvenido a la aplicacion de FotoApp. Antes de comenzar, debemos establecer la ruta donde estan sus imagenes.")
-    rutaImagenes = input("Ingrese la ruta de imagenes (./ para ruta actual): ")
-    while not os.path.isdir(rutaImagenes):
+    while not establecerRutaImagenes(input("Ingrese la ruta de imagenes (./ para ruta actual): ")):
         print("Ruta invalida")
-        rutaImagenes = input("Ingrese la ruta de imagenes: ")
 
     print("Ahora, debemos establecer la imagen con la cual vamos a trabajar")
     nombreImagen = input("Ingrese el nombre de la imagen a procesar (extension incluida): ")
@@ -104,8 +130,8 @@ def menuMain():
         formatoImagen = input("\nIngrese el formato de la imagen: ")
         imgRedimensionada = redimensionarImg(nombreImagen, formatoImagen)
 
-    imgRedimensionada.save(rutaImagenes+"Redimensionada_"+nombreImagen)
-    nombreImagen = "Redimensionada_"+nombreImagen
+    imgRedimensionada.save(rutaImagenes+formatoImagen.lower()+"_"+nombreImagen)
+    nombreImagen = formatoImagen.lower()+"_"+nombreImagen
 
     opcionEditarImg = ""
     while opcionEditarImg != "4":
@@ -117,24 +143,15 @@ def menuMain():
         opcionEditarImg = input("Ingrese una opcion: ")
         match opcionEditarImg:
             case "1":
-                imgHist = ajustarHistograma(nombreImagen)
-                mpl.rcParams['image.cmap'] = 'gray'
-                mostrarImgMPL(imgHist)
-                imgHist.save(rutaImagenes+"Hist_"+nombreImagen)
+                ajustarHistograma(nombreImagen)
             case "2":
                 print("Filtros disponibles: ")
                 for nombreFiltro in filtros.keys():
                     print("\t"+nombreFiltro)
                 nombreFiltro = input("Ingrese el filtro que desea: ")
-                imgFiltro = aplicarFiltroImagen(nombreImagen,nombreFiltro)
-                mpl.rcParams['image.cmap'] = 'viridis'
-                mostrarImgMPL(imgFiltro)
-                imgFiltro.save(rutaImagenes+"Filtrada_"+nombreImagen)
+                aplicarFiltroImagen(nombreImagen,nombreFiltro)
             case "3":
-                imgBoceto = buscarBoceto(nombreImagen)
-                mpl.rcParams['image.cmap'] = 'gray'
-                mostrarImgMPL(imgBoceto)
-                imgBoceto.save(rutaImagenes + "Boceto_" + nombreImagen)
+                buscarBoceto(nombreImagen)
             case "4":
                 break
             case _:
